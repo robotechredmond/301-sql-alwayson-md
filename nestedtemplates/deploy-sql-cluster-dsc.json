@@ -1,0 +1,84 @@
+
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(variables('vmNamePrefix'),copyindex(1),'/sqlPrep')]",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "virtualMachineLoop"
+            ],
+            "copy": {
+                "name": "virtualMachineExtensionLoop",
+                "count": "[sub(variables('vmCount'),1)]"
+            },
+            "properties": {
+                "publisher": "Microsoft.Powershell",
+                "type": "DSC",
+                "typeHandlerVersion": "2.20",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "modulesUrl": "[variables('sqlPrepModulesURL')]",
+                    "configurationFunction": "[variables('sqlPrepFunction')]",
+                    "properties": {
+                        "domainName": "[parameters('domainName')]",
+                        "adminCreds": {
+                            "userName": "[parameters('adminUserName')]",
+                            "password": "PrivateSettingsRef:adminPassword"
+                        }
+                    }
+                },
+                "protectedSettings": {
+                    "items": {
+                        "adminPassword": "[parameters('adminPassword')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(variables('vmNamePrefix'),'0/sqlConfig')]",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "virtualMachineLoop",
+                "virtualMachineExtensionLoop",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('witnessStorageName'))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Powershell",
+                "type": "DSC",
+                "typeHandlerVersion": "2.20",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "modulesUrl": "[variables('sqlConfigModulesURL')]",
+                    "configurationFunction": "[variables('sqlConfigFunction')]",
+                    "properties": {
+                        "domainName": "[parameters('domainName')]",
+                        "clusterName": "[variables('clusterName')]",
+                        "vmNamePrefix": "[variables('vmNamePrefix')]",
+                        "vmCount": "[variables('vmCount')]",
+                        "vmDiskSize": "[parameters('vmDiskSize')]",
+                        "witnessStorageName": "[variables('witnessStorageName')]",
+                        "witnessStorageKey": {
+                            "userName": "PLACEHOLDER-DO-NOT-USE",
+                            "password": "PrivateSettingsRef:witnessStorageKey"
+                        },
+                        "adminCreds": {
+                            "userName": "[parameters('adminUserName')]",
+                            "password": "PrivateSettingsRef:adminPassword"
+                        },
+                        "sqlServiceAccount": {
+                            "userName": "[parameters('sqlServiceAccount')]",
+                            "password": "PrivateSettingsRef:sqlServicePassword"
+                        }
+                    }
+                },
+                "protectedSettings": {
+                    "items": {
+                        "adminPassword": "[parameters('adminPassword')]",
+                        "sqlServicePassword": "[parameters('sqlServicePassword')]",
+                        "witnessStorageKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts',variables('witnessStorageName')),variables('apiVersionStorage')).keys[0].value]"
+                    }
+                }
+            }
+        }
