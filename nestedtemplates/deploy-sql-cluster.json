@@ -149,7 +149,8 @@
                             "privateIPAllocationMethod": "Dynamic",
                             "subnet": {
                                 "id": "[parameters('nicSubnetUri')]"
-                            }
+                            },
+                            "primary": true
                         }
                     },
                     {
