@@ -188,7 +188,7 @@
                 },
                 "parameters": {
                     "ipConfig": {
-                        "value": "[reference(concat(variables('vmNamePrefix'), '0-nic')).ipConfigurations[1].properties.privateIPAddress]"
+                        "value": "[[reference(concat(variables('vmNamePrefix'), '0-nic')).ipConfigurations[1].properties.privateIPAddress]]"
                     }
                 }
             }
@@ -212,7 +212,7 @@
                 },
                 "parameters": {
                     "ipConfig": {
-                        "value": "[reference(concat(variables('vmNamePrefix'), copyIndex(1), '-nic')).ipConfigurations[1].properties.privateIPAddress]"
+                        "value": "[[reference(concat(variables('vmNamePrefix'), copyIndex(1), '-nic')).ipConfigurations[1].properties.privateIPAddress]]"
                     },
                     "ipAddresses": {
                         "value": "[reference(concat(variables('vmNamePrefix'),copyIndex(),'-clusterIp')).outputs.result.value]"
@@ -234,7 +234,7 @@
                 },
                 "parameters": {
                     "ipConfig": {
-                        "value": "[reference(concat(variables('vmNamePrefix'), '0-nic')).ipConfigurations[2].properties.privateIPAddress]"
+                        "value": "[[reference(concat(variables('vmNamePrefix'), '0-nic')).ipConfigurations[2].properties.privateIPAddress]]"
                     }
                 }
             }
@@ -258,7 +258,7 @@
                 },
                 "parameters": {
                     "ipConfig": {
-                        "value": "[reference(concat(variables('vmNamePrefix'), copyIndex(1), '-nic')).ipConfigurations[2].properties.privateIPAddress]"
+                        "value": "[[reference(concat(variables('vmNamePrefix'), copyIndex(1), '-nic')).ipConfigurations[2].properties.privateIPAddress]]"
                     },
                     "ipAddresses": {
                         "value": "[reference(concat(variables('vmNamePrefix'),copyIndex(),'-clusterIp')).outputs.result.value]"
