@@ -102,10 +102,13 @@
         "vmAvailabilitySetName": "[concat(variables('vmNamePrefix'),'as')]",
         "clusterName": "[concat(variables('vmNamePrefix'),'c')]",
         "vmLoopTemplateURL": "[concat(parameters('_artifactsLocation'),'/nestedtemplates/newVM.json',parameters('_artifactsLocationSasToken'))]",
+        "ipLoopTemplateURL": "[concat(parameters('_artifactsLocation'),'/nestedtemplates/getIpAddress.json',parameters('_artifactsLocationSasToken'))]",
         "sqlPrepModulesURL": "[concat(parameters('_artifactsLocation'),'/dsc/prep-sqlao.ps1.zip',parameters('_artifactsLocationSasToken'))]",
         "sqlPrepFunction": "PrepSQLAO.ps1\\PrepSQLAO",
         "sqlConfigModulesURL": "[concat(parameters('_artifactsLocation'),'/dsc/config-sqlao.ps1.zip',parameters('_artifactsLocationSasToken'))]",
-        "sqlConfigFunction": "ConfigSQLAO.ps1\\ConfigSQLAO"
+        "sqlConfigFunction": "ConfigSQLAO.ps1\\ConfigSQLAO",
+        "agName": "[concat(variables('vmNamePrefix'),'ag')]",
+        "agListenerName": "[concat(variables('vmNamePrefix'),'agl')]"
     },
     "resources": [
         {
@@ -173,59 +176,91 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2015-01-01",
-            "copy": {
-                "name": "virtualMachineLoop",
-                "count": "[variables('vmCount')]"
-            },
-            "name": "[concat(variables('vmNamePrefix'),copyindex(),'-newVM')]",
+            "name": "[concat(variables('vmNamePrefix'),'0-clusterIp')]",
             "dependsOn": [
-                "nicLoop",
-                "[resourceId('Microsoft.Compute/availabilitySets', variables('vmAvailabilitySetName'))]"
+                "nicLoop"
             ],
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "[variables('vmLoopTemplateURL')]"
+                    "uri": "[variables('ipLoopTemplateURL')]"
                 },
                 "parameters": {
-                    "vmName": {
-                        "value": "[concat(variables('vmNamePrefix'), copyindex())]"
+                    "ipConfig": {
+                        "value": "[reference(concat(variables('vmNamePrefix'), '0-nic')).ipConfigurations.ipconfig2.privateIPAddress]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2015-01-01",
+            "copy": {
+                "name": "clusterIpLoop",
+                "count": "[sub(variables('vmCount'),1)]"
+            },
+            "name": "[concat(variables('vmNamePrefix'),copyIndex(1),'-clusterIp')]",
+            "dependsOn": [
+                "nicLoop",
+                "[concat(variables('vmNamePrefix'),'0-clusterIp')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('ipLoopTemplateURL')]"
+                },
+                "parameters": {
+                    "ipConfig": {
+                        "value": "[reference(concat(variables('vmNamePrefix'), copyIndex(1), '-nic')).ipConfigurations.ipconfig2.privateIPAddress]"
                     },
-                    "vmAvailabilitySetName": {
-                        "value": "[variables('vmAvailabilitySetName')]"
+                    "ipAddresses": {
+                        "value": "[reference(concat(variables('vmNamePrefix'),copyIndex(),'-clusterIp')).outputs.result.value]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2015-01-01",
+            "name": "[concat(variables('vmNamePrefix'),'0-agListenerIp')]",
+            "dependsOn": [
+                "nicLoop"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('ipLoopTemplateURL')]"
+                },
+                "parameters": {
+                    "ipConfig": {
+                        "value": "[reference(concat(variables('vmNamePrefix'), '0-nic')).ipConfigurations.ipconfig3.privateIPAddress]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2015-01-01",
+            "copy": {
+                "name": "agListenerIpLoop",
+                "count": "[sub(variables('vmCount'),1)]"
+            },
+            "name": "[concat(variables('vmNamePrefix'),copyIndex(1),'-agListenerIp')]",
+            "dependsOn": [
+                "nicLoop",
+                "[concat(variables('vmNamePrefix'),'0-agListenerIp')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('ipLoopTemplateURL')]"
+                },
+                "parameters": {
+                    "ipConfig": {
+                        "value": "[reference(concat(variables('vmNamePrefix'), copyIndex(1), '-nic')).ipConfigurations.ipconfig3.privateIPAddress]"
                     },
-                    "vmSize": {
-                        "value": "[parameters('vmSize')]"
-                    },
-                    "vmDiskCount": {
-                        "value": "[parameters('vmDiskCount')]"
-                    },
-                    "vmDiskSize": {
-                        "value": "[parameters('vmDiskSize')]"
-                    },
-                    "adminUsername": {
-                        "value": "[parameters('adminUsername')]"
-                    },
-                    "adminPassword": {
-                        "value": "[parameters('adminPassword')]"
-                    },
-                    "_artifactsLocation": {
-                        "value": "[parameters('_artifactsLocation')]"
-                    },
-                    "_artifactsLocationSasToken": {
-                        "value": "[parameters('_artifactsLocationSasToken')]"
-                    },
-                    "imagePublisher": {
-                        "value": "[parameters('imagePublisher')]"
-                    },
-                    "imageOffer": {
-                        "value": "[parameters('imageOffer')]"
-                    },
-                    "imageSKU": {
-                        "value": "[parameters('imageSKU')]"
-                    },
-                    "imageVersion": {
-                        "value": "[parameters('imageVersion')]"
+                    "ipAddresses": {
+                        "value": "[reference(concat(variables('vmNamePrefix'),copyIndex(),'-clusterIp')).outputs.result.value]"
                     }
                 }
             }
@@ -234,7 +269,7 @@
     "outputs": {
         "agListenerName": {
             "type": "string",
-            "value": "[concat(variables('vmNamePrefix'),'ag')]"
+            "value": "[variables('agListenerName')]"
         }
     }
 }
