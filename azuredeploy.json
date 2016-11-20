@@ -159,7 +159,7 @@
     }
   ],
   "outputs": {
-    "sofsPath": {
+    "agListenerName": {
       "type": "string",
       "value": "[reference(variables('deploySqlCluster')).outputs.agListenerName.value]"
     }
