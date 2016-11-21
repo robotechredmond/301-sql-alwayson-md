@@ -70,6 +70,10 @@
                 "description": "Number of data disks on each SQL Server VM (Min=2, Max=32). Ensure that the VM size you've selected will support this number of data disks."
             }
         },
+        "workloadType": {
+            "type": "string",
+            "defaultValue": "GENERAL"
+        },
         "imagePublisher": {
             "type": "string",
             "defaultValue": "MicrosoftSQLServer"
@@ -352,66 +356,19 @@
                         "adminCreds": {
                             "userName": "[parameters('adminUserName')]",
                             "password": "PrivateSettingsRef:adminPassword"
-                        }
-                    }
-                },
-                "protectedSettings": {
-                    "items": {
-                        "adminPassword": "[parameters('adminPassword')]"
-                    }
-                }
-            }
-        },
-        {
-            "type": "Microsoft.Compute/virtualMachines/extensions",
-            "name": "[concat(variables('vmNamePrefix'),'0/sqlConfig')]",
-            "apiVersion": "2015-06-15",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "virtualMachineLoop",
-                "virtualMachineExtensionLoop",
-                "clusterIpLoop",
-                "agListenerIpLoop",
-                "[resourceId('Microsoft.Storage/storageAccounts', variables('witnessStorageName'))]"
-            ],
-            "properties": {
-                "publisher": "Microsoft.Powershell",
-                "type": "DSC",
-                "typeHandlerVersion": "2.20",
-                "autoUpgradeMinorVersion": true,
-                "settings": {
-                    "modulesUrl": "[variables('sqlConfigModulesURL')]",
-                    "configurationFunction": "[variables('sqlConfigFunction')]",
-                    "properties": {
-                        "domainName": "[parameters('domainName')]",
-                        "clusterName": "[variables('clusterName')]",
-                        "vmNamePrefix": "[variables('vmNamePrefix')]",
-                        "agName": "[variables('agName')]",
-                        "agListenerName": "[variables('agListenerName')]",
-                        "vmCount": "[variables('vmCount')]",
-                        "vmDiskSize": "[parameters('vmDiskSize')]",
-                        "clusterIpAddresses": "[reference(concat(variables('vmNamePrefix'),sub(variables('vmCount'),1),'-clusterIp')).outputs.result.value]",
-                        "agListernerIpAddresses": "[reference(concat(variables('vmNamePrefix'),sub(variables('vmCount'),1),'-agListenerIp')).outputs.result.value]",
-                        "witnessStorageName": "[variables('witnessStorageName')]",
-                        "witnessStorageKey": {
-                            "userName": "PLACEHOLDER-DO-NOT-USE",
-                            "password": "PrivateSettingsRef:witnessStorageKey"
                         },
-                        "adminCreds": {
-                            "userName": "[parameters('adminUserName')]",
-                            "password": "PrivateSettingsRef:adminPassword"
-                        },
-                        "sqlServiceAccount": {
+                        "sqlServiceCreds": {
                             "userName": "[parameters('sqlServiceAccount')]",
                             "password": "PrivateSettingsRef:sqlServicePassword"
-                        }
+                        },
+                        "numberOfDisks": "[parameters('vmDiskCount')]",
+                        "workloadType": "[parameters('workloadType')]"
                     }
                 },
                 "protectedSettings": {
                     "items": {
                         "adminPassword": "[parameters('adminPassword')]",
-                        "sqlServicePassword": "[parameters('sqlServicePassword')]",
-                        "witnessStorageKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts',variables('witnessStorageName')),variables('apiVersionStorage')).keys[0].value]"
+                        "sqlServicePassword": "[parameters('sqlServicePassword')]"
                     }
                 }
             }
