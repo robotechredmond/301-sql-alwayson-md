@@ -85,6 +85,18 @@
         "description": "Name of the existing subnet in the existing VNET to which the SQL Server VMs should be deployed"
       }
     },
+    "workloadType": {
+      "type": "string",
+      "allowedValues": [
+        "GENERAL",
+        "OLTP",
+        "DW"
+      ],
+      "metadata": {
+        "description": "SQL DB workload type: GENERAL - General workload; DW - Data Warehouse workload; OLTP - Transactional Processing workload"
+      },
+      "defaultValue": "GENERAL"
+    },
     "_artifactsLocation": {
       "type": "string",
       "metadata": {
@@ -147,6 +159,9 @@
           },
           "vmDiskCount": {
             "value": "[parameters('vmDiskCount')]"
+          },
+          "workloadType": {
+            "value": "[parameters('workloadType')]"
           },
           "_artifactsLocation": {
             "value": "[parameters('_artifactsLocation')]"
