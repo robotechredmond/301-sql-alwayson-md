@@ -402,7 +402,7 @@
                         "sqlAlwaysOnEndpointName": "[variables('agEpName')]",
                         "vmCount": "[variables('vmCount')]",
                         "clusterIpAddresses": "[reference(concat(variables('vmNamePrefix'),sub(variables('vmCount'),1),'-clusterIp')).outputs.result.value]",
-                        "agListernerIpAddresses": "[reference(concat(variables('vmNamePrefix'),sub(variables('vmCount'),1),'-agListenerIp')).outputs.result.value]",
+                        "agListenerIpAddresses": "[reference(concat(variables('vmNamePrefix'),sub(variables('vmCount'),1),'-agListenerIp')).outputs.result.value]",
                         "numberOfDisks": "[parameters('vmDiskCount')]",
                         "workloadType": "[parameters('workloadType')]",
                         "witnessStorageName": "[variables('witnessStorageName')]",
