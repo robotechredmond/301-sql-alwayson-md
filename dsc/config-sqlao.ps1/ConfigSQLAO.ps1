@@ -37,12 +37,6 @@ configuration ConfigSQLAO
         [String[]]$AGListenerIpAddresses,
 
         [Parameter(Mandatory)]
-        [String]$PrimaryReplica,
-
-        [Parameter(Mandatory)]
-        [String]$SecondaryReplica,
-
-        [Parameter(Mandatory)]
         [String]$SqlAlwaysOnEndpointName,
 
         [Parameter(Mandatory)]
@@ -92,6 +86,9 @@ configuration ConfigSQLAO
     For ($count=0; $count -lt $vmCount; $count++) {
         $Nodes.Add($vmNamePrefix + $Count.ToString())
     }
+
+    $PrimaryReplica = $Nodes[0]
+    $SecondaryReplica = $Nodes[1]
     
     WaitForSqlSetup
 
