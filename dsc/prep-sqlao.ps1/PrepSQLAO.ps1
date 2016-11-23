@@ -16,6 +16,8 @@ configuration PrepSQLAO
         [System.Management.Automation.PSCredential]$SQLServicecreds,
 
         [UInt32]$DatabaseEnginePort = 1433,
+        
+        [UInt32]$DatabaseMirrorPort = 5022,
 
         [Parameter(Mandatory)]
         [UInt32]$NumberOfDisks,
@@ -91,7 +93,7 @@ configuration PrepSQLAO
             DomainUserCredential= $DomainCreds
             RetryCount = $RetryCount 
             RetryIntervalSec = $RetryIntervalSec 
-	    DependsOn = "[WindowsFeature]ADPS"
+	        DependsOn = "[WindowsFeature]ADPS"
         }
         
         xComputer DomainJoin
@@ -99,7 +101,7 @@ configuration PrepSQLAO
             Name = $env:COMPUTERNAME
             DomainName = $DomainName
             Credential = $DomainCreds
-	    DependsOn = "[xWaitForADDomain]DscForestWait"
+	        DependsOn = "[xWaitForADDomain]DscForestWait"
         }
 
         xFirewall DatabaseEngineFirewallRule
@@ -114,6 +116,7 @@ configuration PrepSQLAO
             Protocol = "TCP"
             LocalPort = $DatabaseEnginePort -as [String]
             Ensure = "Present"
+            DependsOn = "[xComputer]DomainJoin"
         }
 
         xFirewall DatabaseMirroringFirewallRule
@@ -126,22 +129,9 @@ configuration PrepSQLAO
             State = "Enabled"
             Access = "Allow"
             Protocol = "TCP"
-            LocalPort = "5022"
+            LocalPort = $DatabaseMirrorPort -as [String]
             Ensure = "Present"
-        }
-
-        xFirewall ListenerFirewallRule
-        {
-            Direction = "Inbound"
-            Name = "SQL-Server-Availability-Group-Listener-TCP-In"
-            DisplayName = "SQL Server Availability Group Listener (TCP-In)"
-            Description = "Inbound rule for SQL Server to allow TCP traffic for the Availability Group listener."
-            DisplayGroup = "SQL Server"
-            State = "Enabled"
-            Access = "Allow"
-            Protocol = "TCP"
-            LocalPort = "59999"
-            Ensure = "Present"
+            DependsOn = "[xComputer]DomainJoin"
         }
 
         xSqlLogin AddDomainAdminAccountToSysadminServerRole
@@ -151,6 +141,7 @@ configuration PrepSQLAO
             ServerRoles = "sysadmin"
             Enabled = $true
             Credential = $Admincreds
+            DependsOn = "[xComputer]DomainJoin"
         }
 
         xADUser CreateSqlServerServiceAccount

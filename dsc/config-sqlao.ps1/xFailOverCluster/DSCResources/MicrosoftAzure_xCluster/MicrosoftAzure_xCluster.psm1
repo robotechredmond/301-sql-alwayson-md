@@ -15,7 +15,9 @@ function Get-TargetResource
         [parameter(Mandatory)]
         [PSCredential] $DomainAdministratorCredential,
 
-        [string[]] $Nodes
+        [string[]] $Nodes,
+
+        [string[]] $ClusterIPAddresses
     )
 
     $ComputerInfo = Get-WmiObject Win32_ComputerSystem
@@ -67,116 +69,60 @@ function Set-TargetResource
         [parameter(Mandatory)]
         [PSCredential] $DomainAdministratorCredential,
 
-        [string[]] $Nodes
+        [string[]] $Nodes,
+
+        [string[]] $ClusterIPAddresses 
     )
 
-    $bCreate = $true
+    $RetryCounter = 0
 
-    try
-    {
-        ($oldToken, $context, $newToken) = ImpersonateAs -cred $DomainAdministratorCredential
+    ($oldToken, $context, $newToken) = ImpersonateAs -cred $DomainAdministratorCredential
 
-        if ($bCreate)
-        { 
-            $cluster = CreateFailoverCluster -ClusterName $Name
-
-            Sleep 5
-            # See http://social.technet.microsoft.com/wiki/contents/articles/14776.how-to-configure-windows-failover-cluster-in-azure-for-alwayson-availability-groups.aspx
-            # for why the following workaround is necessary.
-            Write-Verbose -Message "Stopping the Cluster Name resource ..."
-             #maker
-            $clusterGroup = $cluster | Get-ClusterGroup
+    While ($true) {
+        
+        try {
             
-            $clusterNameRes = $clusterGroup | Get-ClusterResource "Cluster Name"
+            Write-Verbose -Message "Creating Cluster '$($Name)'."
             
-            $clusterNameRes | Stop-ClusterResource | Out-Null
+            $cluster = New-Cluster -Name $Name -Node $Nodes -StaticAdress $ClusterIPAddresses -NoStorage -ErrorAction Stop
 
             Sleep 5
-            
-            Write-Verbose -Message "Stopping the Cluster IP Address resources ..."
-            
-            $clusterIpAddrRes = $clusterGroup | Get-ClusterResource | Where-Object { $_.ResourceType.Name -in "IP Address", "IPv6 Address", "IPv6 Tunnel Address" }
-            
-            $clusterIpAddrRes | Stop-ClusterResource | Out-Null
-            
-            Sleep 5
-            
-            Write-Verbose -Message "Removing all Cluster IP Address resources except the first IPv4 Address ..."
-            
-            $firstClusterIpv4AddrRes = $clusterIpAddrRes | Where-Object { $_.ResourceType.Name -eq "IP Address" } | Select-Object -First 1
-            
-            $clusterIpAddrRes | Where-Object { $_.Name -ne $firstClusterIpv4AddrRes.Name } | Remove-ClusterResource -Force | Out-Null
 
-            Write-Verbose -Message "Seting the Cluster IP Address to a local link address ..."
-            
-            Sleep 5
+            Get-StorageSubsystem -FriendlyName 'Cluster*' | Set-StorageSubSystem -AutomaticClusteringEnabled $False
+    
+            Write-Verbose -Message "Successfully created cluster '$($Name)'."
 
-            $clusterIpAddrRes | Set-ClusterParameter -Multiple @{
-                "Address" = "169.254.1.1"
-                "SubnetMask" = "255.255.0.0"
-                "EnableDhcp" = 0
-                "OverrideAddressMatch" = 1
-            } -ErrorAction Stop
+            Break
 
-            Write-Verbose -Message "Starting the Cluster Name resource ..."
-            
-            $clusterNameRes | Start-ClusterResource -ErrorAction Stop | Out-Null
-
-            Write-Verbose -Message "Starting Cluster '$($Name)' ..."
-            
-            Start-Cluster -Name $Name -ErrorAction Stop | Out-Null
-            
-            Sleep 5
-            
-            (Get-Cluster).SameSubnetThreshold = 20
         }
 
-        $version=[system.environment]::OSVersion.Version
-        if (($version.Major -eq 6) -and ($version.Minor -eq 3))
+        catch [System.Exception] 
         {
-            $nostorage=$true
-        }
-        else
-        {
-            $nostorage=$false
-        } 
-        Write-Verbose -Message "Adding specified nodes to cluster '$($Name)' ..."
-        
-        #Add Nodes to cluster
-        $allNodes = Get-ClusterNode -Cluster $Name
-        
-        foreach ($node in $Nodes)
-        {
-            $foundNode = $allNodes | where-object { $_.Name -eq $node }
-
-            if ($foundNode -and ($foundNode.State -ne "Up"))
+            $RetryCounter = $RetryCounter + 1
+            
+            $ErrorMSG = "Error occured: '$($_.Exception.Message)', failed after '$($RetryCounter)' times"
+            
+            if ($RetryCounter -eq 10) 
             {
-                Write-Verbose -Message "Removing node '$($node)' since it's in the cluster but is not UP ..."
-                
-                Remove-ClusterNode $foundNode -Cluster $Name -Force | Out-Null
+                Write-Verbose "Error occured: $ErrorMSG, reach the maximum re-try: '$($RetryCounter)' times, exiting...."
 
-                AddNodeToCluster -ClusterName $Name -NodeName $node -Nostorage $nostorage
-
-                continue
-            }
-            elseif ($foundNode)
-            {
-                Write-Verbose -Message "Node $($node)' already in the cluster, skipping ..."
-
-                continue
+                Throw $ErrorMSG
             }
 
-            AddNodeToCluster -ClusterName $Name -NodeName $node -Nostorage $nostorage
+            Sleep 5
+
+            Write-Verbose "Error occured: $ErrorMSG, retry for '$($RetryCounter)' times"
         }
-    }
-    finally
-    {
-        if ($context)
+        finally
         {
-            $context.Undo()
-            $context.Dispose()
-            CloseUserToken($newToken)
+            if ($context)
+            {
+                $context.Undo()
+                $context.Dispose()
+                CloseUserToken($newToken)
+            }
         }
+
     }
 }
 
@@ -199,7 +145,9 @@ function Test-TargetResource
         [parameter(Mandatory)]
         [PSCredential] $DomainAdministratorCredential,
 
-        [string[]] $Nodes
+        [string[]] $Nodes,
+
+        [string[]] $ClusterIPAddresses
     )
 
     $bRet = $false
@@ -279,114 +227,6 @@ function Test-TargetResource
 
     $bRet
 }
-
-
-function AddNodeToCluster
-{
-    param
-    (
-        [parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [String]$NodeName,
-
-        [parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [Bool]$Nostorage,
-
-        [parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [String]$ClusterName
-    )
-
-    
-    $RetryCounter = 0
-
-    While ($true) {
-        
-        try {
-            
-            if ($Nostorage)
-            {
-               Write-Verbose -Message "Adding node $($node)' to the cluster without storage ..."
-                
-               Add-ClusterNode -Cluster $ClusterName -Name $NodeName -NoStorage -ErrorAction Stop | Out-Null
-           
-            }
-            else
-            {
-               Write-Verbose -Message "Adding node $($node)' to the cluster"
-                
-               Add-ClusterNode -Cluster $ClusterName -Name $NodeName -ErrorAction Stop | Out-Null
-
-            }
-
-            Write-Verbose -Message "Successfully added node $($node)' to cluster '$($Name)'."
-
-            return $true
-        }
-        catch [System.Exception] 
-        {
-            $RetryCounter = $RetryCounter + 1
-            
-            $ErrorMSG = "Error occured: '$($_.Exception.Message)', failed after '$($RetryCounter)' times"
-            
-            if ($RetryCounter -eq 10) 
-            {
-                Write-Verbose "Error occured: $ErrorMSG, reach the maximum re-try: '$($RetryCounter)' times, exiting...."
-
-                Throw $ErrorMSG
-            }
-
-            start-sleep -seconds 5
-
-            Write-Verbose "Error occured: $ErrorMSG, retry for '$($RetryCounter)' times"
-        }
-    }
-}
-
-function CreateFailoverCluster
-{
-    param
-    (
-        [parameter(Mandatory)]
-        [ValidateNotNullOrEmpty()]
-        [String]$ClusterName
-    )
-
-    $RetryCounter = 0
-
-    While ($true) {
-        
-        try {
-            
-            Write-Verbose -Message "Creating Cluster '$($Name)'."
-            
-            $cluster = New-Cluster -Name $ClusterName -Node $env:COMPUTERNAME -NoStorage -Force -ErrorAction Stop
-    
-            Write-Verbose -Message "Successfully created cluster '$($Name)'."
-
-            return $cluster
-        }
-        catch [System.Exception] 
-        {
-            $RetryCounter = $RetryCounter + 1
-            
-            $ErrorMSG = "Error occured: '$($_.Exception.Message)', failed after '$($RetryCounter)' times"
-            
-            if ($RetryCounter -eq 10) 
-            {
-                Write-Verbose "Error occured: $ErrorMSG, reach the maximum re-try: '$($RetryCounter)' times, exiting...."
-
-                Throw $ErrorMSG
-            }
-
-            start-sleep -seconds 5
-
-            Write-Verbose "Error occured: $ErrorMSG, retry for '$($RetryCounter)' times"
-        }
-    }
-}
-
 
 function Get-ImpersonateLib
 {
