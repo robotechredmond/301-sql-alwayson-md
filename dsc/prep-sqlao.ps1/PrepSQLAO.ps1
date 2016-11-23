@@ -1,4 +1,4 @@
-#
+﻿#
 # Copyright="© Microsoft Corporation. All rights reserved."
 #
 
@@ -91,7 +91,7 @@ configuration PrepSQLAO
             DomainUserCredential= $DomainCreds
             RetryCount = $RetryCount 
             RetryIntervalSec = $RetryIntervalSec 
-	        DependsOn = "[WindowsFeature]ADPS"
+	    DependsOn = "[WindowsFeature]ADPS"
         }
         
         xComputer DomainJoin
@@ -99,7 +99,7 @@ configuration PrepSQLAO
             Name = $env:COMPUTERNAME
             DomainName = $DomainName
             Credential = $DomainCreds
-	        DependsOn = "[xWaitForADDomain]DscForestWait"
+	    DependsOn = "[xWaitForADDomain]DscForestWait"
         }
 
         xFirewall DatabaseEngineFirewallRule

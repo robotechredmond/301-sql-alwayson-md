@@ -180,7 +180,7 @@ function Set-TargetResource
     #Creating Storage Pool
     Write-Verbose "Creating Storage Pool $($NewStoragePoolName)"
  
-    New-StoragePool -FriendlyName $NewStoragePoolName -StorageSubSystemUniqueId (Get-StorageSubSystem -FriendlyName '*Space*').uniqueID -PhysicalDisks $DisksForStoragePool
+    New-StoragePool -FriendlyName $NewStoragePoolName -StorageSubSystemUniqueId (Get-StorageSubSystem)[0].uniqueID -PhysicalDisks $DisksForStoragePool
     
     #Validating Storage Pool
     Verify-NewStoragePool -TimeOut 20
