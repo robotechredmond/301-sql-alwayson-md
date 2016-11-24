@@ -84,8 +84,12 @@ function Set-TargetResource
             
             Write-Verbose -Message "Creating Cluster '$($Name)'."
             
-            $cluster = New-Cluster -Name $Name -Node $Nodes -StaticAddress $ClusterIPAddresses -NoStorage -ErrorAction Stop
+            $cluster = New-Cluster -Name $Name -Node $Nodes[0] -StaticAddress $ClusterIPAddresses -NoStorage -ErrorAction Continue
 
+            Sleep 5
+
+            Add-ClusterNode -Cluster $Name -Name $Nodes[1] -NoStorage -ErrorAction Stop
+            
             Write-Verbose -Message "Successfully created cluster '$($Name)'."
 
             Break
@@ -109,17 +113,16 @@ function Set-TargetResource
 
             Write-Verbose "Error occured: $ErrorMSG, retry for '$($RetryCounter)' times"
         }
-        finally
-        {
-            if ($context)
-            {
-                $context.Undo()
-                $context.Dispose()
-                CloseUserToken($newToken)
-            }
-        }
 
     }
+
+    if ($context)
+    {
+        $context.Undo()
+        $context.Dispose()
+        CloseUserToken($newToken)
+    }
+
 }
 
 #
