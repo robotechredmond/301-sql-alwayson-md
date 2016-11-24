@@ -84,7 +84,7 @@ function Set-TargetResource
             
             Write-Verbose -Message "Creating Cluster '$($Name)'."
             
-            $cluster = New-Cluster -Name $Name -Node $Nodes[0] -StaticAddress $ClusterIPAddresses -NoStorage -ErrorAction Continue
+            $cluster = New-Cluster -Name $Name -Node $Nodes[0] -StaticAddress $ClusterIPAddresses[0] -NoStorage -ErrorAction Continue
 
             Sleep 5
 
