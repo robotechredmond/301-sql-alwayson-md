@@ -74,55 +74,107 @@ function Set-TargetResource
         [string[]] $ClusterIPAddresses 
     )
 
-    $RetryCounter = 0
+    $bCreate = $true
 
-    ($oldToken, $context, $newToken) = ImpersonateAs -cred $DomainAdministratorCredential
+    try
+    {
+        ($oldToken, $context, $newToken) = ImpersonateAs -cred $DomainAdministratorCredential
 
-    While ($true) {
-        
-        try {
-            
-            Write-Verbose -Message "Creating Cluster '$($Name)'."
-            
-            $cluster = New-Cluster -Name $Name -Node $Nodes[0] -StaticAddress $ClusterIPAddresses[0] -NoStorage -ErrorAction Continue
+        if ($bCreate)
+        { 
+            $cluster = CreateFailoverCluster -ClusterName $Name -StaticAddress $ClusterIPAddresses[0]
 
             Sleep 5
 
-            Add-ClusterNode -Cluster $Name -Name $Nodes[1] -NoStorage -ErrorAction Stop
+            $clusterGroup = $cluster | Get-ClusterGroup
+
+            $clusterIpAddrRes = $clusterGroup | Get-ClusterResource | Where-Object { $_.ResourceType.Name -in "IP Address", "IPv6 Address", "IPv6 Tunnel Address" }
+
+            Write-Verbose -Message "Removing all Cluster IP Address resources except the first IPv4 Address ..."
             
-            Write-Verbose -Message "Successfully created cluster '$($Name)'."
-
-            Break
-
-        }
-
-        catch [System.Exception] 
-        {
-            $RetryCounter = $RetryCounter + 1
+            $firstClusterIpv4AddrRes = $clusterIpAddrRes | Where-Object { $_.ResourceType.Name -eq "IP Address" } | Select-Object -First 1
             
-            $ErrorMSG = "Error occured: '$($_.Exception.Message)', failed after '$($RetryCounter)' times"
-            
-            if ($RetryCounter -eq 10) 
-            {
-                Write-Verbose "Error occured: $ErrorMSG, reach the maximum re-try: '$($RetryCounter)' times, exiting...."
+            $clusterIpAddrRes | Where-Object { $_.Name -ne $firstClusterIpv4AddrRes.Name } | Remove-ClusterResource -Force | Out-Null
 
-                Throw $ErrorMSG
+            Write-Verbose -Message "Adding new Cluster IP Address resources ..."
+
+            $subnetMask=(Get-ClusterNetwork).AddressMask
+
+            $clusterResourceDependencyExpr = "([$($firstClusterIpv4AddrRes.Name)])"
+
+            for ($count=1; $count -le $ClusterIPAddresses.Length(); $count++) {
+                
+                $newClusterIpv4AddrResName = "Cluster IP Address $($ClusterIPAddresses[$count])"
+
+                Add-ClusterResource -Name "Cluster IP Address $newClusterIpv4AddrResName" -Group "Cluster Group" -ResourceType "IP Address" 
+
+                $newClusterIpv4AddrRes = Get-ClusterResource -Name $newClusterIpv4AddrResName
+
+                $newClusterIpv4AddrRes |
+                Set-ClusterParameter -Multiple @{
+                                        "Address" = $ClusterIPAddresses[$count]
+                                        "SubnetMask" = $subnetMask
+                                        "EnableDhcp" = 0
+                                    }
+
+                $newClusterIpv4AddrRes | Start-ClusterResource
+                
+                $clusterResourceDependencyExpr += " and ([Cluster IP Address $($ClusterIPAddresses[$count])])"
+
             }
 
-            Sleep 5
+            Set-ClusterResourceDependency -Resource "Cluster Name" -Dependency $clusterResourceDependencyExpr
 
-            Write-Verbose "Error occured: $ErrorMSG, retry for '$($RetryCounter)' times"
+            (Get-Cluster).SameSubnetThreshold = 20
         }
 
-    }
+        $version=[system.environment]::OSVersion.Version
+        if (($version.Major -eq 6) -and ($version.Minor -eq 3))
+        {
+            $nostorage=$true
+        }
+        else
+        {
+            $nostorage=$false
+        } 
+        Write-Verbose -Message "Adding specified nodes to cluster '$($Name)' ..."
+        
+        #Add Nodes to cluster
+        $allNodes = Get-ClusterNode -Cluster $Name
+        
+        foreach ($node in $Nodes)
+        {
+            $foundNode = $allNodes | where-object { $_.Name -eq $node }
 
-    if ($context)
+            if ($foundNode -and ($foundNode.State -ne "Up"))
+            {
+                Write-Verbose -Message "Removing node '$($node)' since it's in the cluster but is not UP ..."
+                
+                Remove-ClusterNode $foundNode -Cluster $Name -Force | Out-Null
+
+                AddNodeToCluster -ClusterName $Name -NodeName $node -Nostorage $nostorage
+
+                continue
+            }
+            elseif ($foundNode)
+            {
+                Write-Verbose -Message "Node $($node)' already in the cluster, skipping ..."
+
+                continue
+            }
+
+            AddNodeToCluster -ClusterName $Name -NodeName $node -Nostorage $nostorage
+        }
+    }
+    finally
     {
-        $context.Undo()
-        $context.Dispose()
-        CloseUserToken($newToken)
+        if ($context)
+        {
+            $context.Undo()
+            $context.Dispose()
+            CloseUserToken($newToken)
+        }
     }
-
 }
 
 #
@@ -225,6 +277,116 @@ function Test-TargetResource
     }
 
     $bRet
+}
+
+function AddNodeToCluster
+{
+    param
+    (
+        [parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [String]$NodeName,
+
+        [parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [Bool]$Nostorage,
+
+        [parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [String]$ClusterName
+    )
+
+    
+    $RetryCounter = 0
+
+    While ($true) {
+        
+        try {
+            
+            if ($Nostorage)
+            {
+               Write-Verbose -Message "Adding node $($node)' to the cluster without storage ..."
+                
+               Add-ClusterNode -Cluster $ClusterName -Name $NodeName -NoStorage -ErrorAction Stop | Out-Null
+           
+            }
+            else
+            {
+               Write-Verbose -Message "Adding node $($node)' to the cluster"
+                
+               Add-ClusterNode -Cluster $ClusterName -Name $NodeName -ErrorAction Stop | Out-Null
+
+            }
+
+            Write-Verbose -Message "Successfully added node $($node)' to cluster '$($Name)'."
+
+            return $true
+        }
+        catch [System.Exception] 
+        {
+            $RetryCounter = $RetryCounter + 1
+            
+            $ErrorMSG = "Error occured: '$($_.Exception.Message)', failed after '$($RetryCounter)' times"
+            
+            if ($RetryCounter -eq 10) 
+            {
+                Write-Verbose "Error occured: $ErrorMSG, reach the maximum re-try: '$($RetryCounter)' times, exiting...."
+
+                Throw $ErrorMSG
+            }
+
+            start-sleep -seconds 5
+
+            Write-Verbose "Error occured: $ErrorMSG, retry for '$($RetryCounter)' times"
+        }
+    }
+}
+
+function CreateFailoverCluster
+{
+    param
+    (
+        [parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [String]$ClusterName,
+
+        [parameter(Mandatory)]
+        [ValidateNotNullOrEmpty()]
+        [String]$StaticAddress
+    )
+
+    $RetryCounter = 0
+
+    While ($true) {
+        
+        try {
+            
+            Write-Verbose -Message "Creating Cluster '$($Name)'."
+            
+            $cluster = New-Cluster -Name $ClusterName -Node $env:COMPUTERNAME -StaticAddress $StaticAddress -NoStorage -Force -ErrorAction Stop
+    
+            Write-Verbose -Message "Successfully created cluster '$($Name)'."
+
+            return $cluster
+        }
+        catch [System.Exception] 
+        {
+            $RetryCounter = $RetryCounter + 1
+            
+            $ErrorMSG = "Error occured: '$($_.Exception.Message)', failed after '$($RetryCounter)' times"
+            
+            if ($RetryCounter -eq 10) 
+            {
+                Write-Verbose "Error occured: $ErrorMSG, reach the maximum re-try: '$($RetryCounter)' times, exiting...."
+
+                Throw $ErrorMSG
+            }
+
+            start-sleep -seconds 5
+
+            Write-Verbose "Error occured: $ErrorMSG, retry for '$($RetryCounter)' times"
+        }
+    }
 }
 
 function Get-ImpersonateLib
