@@ -102,11 +102,11 @@ function Set-TargetResource
 
             $clusterResourceDependencyExpr = "([$($firstClusterIpv4AddrRes.Name)])"
 
-            for ($count=1; $count -le $ClusterIPAddresses.Length; $count++) {
+            for ($count=1; $count -le $ClusterIPAddresses.Length - 1; $count++) {
                 
                 $newClusterIpv4AddrResName = "Cluster IP Address $($ClusterIPAddresses[$count])"
 
-                Add-ClusterResource -Name "Cluster IP Address $newClusterIpv4AddrResName" -Group "Cluster Group" -ResourceType "IP Address" 
+                Add-ClusterResource -Name $newClusterIpv4AddrResName -Group "Cluster Group" -ResourceType "IP Address" 
 
                 $newClusterIpv4AddrRes = Get-ClusterResource -Name $newClusterIpv4AddrResName
 
@@ -119,7 +119,7 @@ function Set-TargetResource
 
                 $newClusterIpv4AddrRes | Start-ClusterResource
                 
-                $clusterResourceDependencyExpr += " and ([Cluster IP Address $($ClusterIPAddresses[$count])])"
+                $clusterResourceDependencyExpr += " and ([$newClusterIpv4AddrResName])"
 
             }
 
@@ -128,15 +128,8 @@ function Set-TargetResource
             (Get-Cluster).SameSubnetThreshold = 20
         }
 
-        $version=[system.environment]::OSVersion.Version
-        if (($version.Major -eq 6) -and ($version.Minor -eq 3))
-        {
-            $nostorage=$true
-        }
-        else
-        {
-            $nostorage=$false
-        } 
+        $nostorage=$true
+        
         Write-Verbose -Message "Adding specified nodes to cluster '$($Name)' ..."
         
         #Add Nodes to cluster
