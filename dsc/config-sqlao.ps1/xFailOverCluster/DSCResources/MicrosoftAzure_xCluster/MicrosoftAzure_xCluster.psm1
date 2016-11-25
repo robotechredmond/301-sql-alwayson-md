@@ -102,7 +102,7 @@ function Set-TargetResource
 
             $clusterResourceDependencyExpr = "([$($firstClusterIpv4AddrRes.Name)])"
 
-            for ($count=1; $count -le $ClusterIPAddresses.Length(); $count++) {
+            for ($count=1; $count -le $ClusterIPAddresses.Length; $count++) {
                 
                 $newClusterIpv4AddrResName = "Cluster IP Address $($ClusterIPAddresses[$count])"
 
