@@ -30,16 +30,16 @@
             }
         },
         "sqlServiceAccount": {
-        "type": "string",
-        "metadata": {
-            "description": "Name of the user account to be used for the SQL Server service account"
+            "type": "string",
+            "metadata": {
+                "description": "Name of the user account to be used for the SQL Server service account"
             }
         },
         "sqlServicePassword": {
-        "type": "securestring",
-        "minLength": 12,
-        "metadata": {
-            "description": "Password to be used for the SQL Server service account"
+            "type": "securestring",
+            "minLength": 12,
+            "metadata": {
+                "description": "Password to be used for the SQL Server service account"
             }
         },
         "nicSubnetUri": {
@@ -53,6 +53,15 @@
             "metadata": {
                 "description": "Size of the SQL Server VMs to be created"
             }
+        },
+        "vmCount": {
+            "type": "int",
+            "minValue": 2,
+            "maxValue": 9,
+            "metadata": {
+                "description": "Number of SQL Server VMs to be created in AlwaysOn Availability Group cluster (Min=2, Max=9)"
+            },
+            "defaultValue": 2
         },
         "vmDiskSize": {
             "type": "int",
@@ -101,7 +110,6 @@
         "apiVersionStorage": "2016-01-01",
         "witnessStorageName": "[concat(parameters('namePrefix'),uniqueString(resourceGroup().id),'cw')]",
         "witnessStorageType": "Standard_LRS",
-        "vmCount": 2,
         "vmNamePrefix": "[concat(parameters('namePrefix'),'-sql-')]",
         "vmAvailabilitySetName": "[concat(variables('vmNamePrefix'),'as')]",
         "clusterName": "[concat(variables('vmNamePrefix'),'c')]",
@@ -122,8 +130,8 @@
             "apiVersion": "2016-04-30-preview",
             "location": "[resourceGroup().location]",
             "properties": {
-                "platformFaultDomainCount": "[variables('vmCount')]",
-                "platformUpdateDomainCount": "[variables('vmCount')]",
+                "platformFaultDomainCount": 3,
+                "platformUpdateDomainCount": 5,
                 "managed": "true"
             }
         },
@@ -144,7 +152,7 @@
             "apiVersion": "2015-06-15",
             "copy": {
                 "name": "nicLoop",
-                "count": "[variables('vmCount')]"
+                "count": "[parameters('vmCount')]"
             },
             "properties": {
                 "ipConfigurations": [
@@ -203,7 +211,7 @@
             "apiVersion": "2015-01-01",
             "copy": {
                 "name": "clusterIpLoop",
-                "count": "[sub(variables('vmCount'),1)]"
+                "count": "[sub(parameters('vmCount'),1)]"
             },
             "name": "[concat(variables('vmNamePrefix'),copyIndex(1),'-clusterIp')]",
             "dependsOn": [
@@ -249,7 +257,7 @@
             "apiVersion": "2015-01-01",
             "copy": {
                 "name": "agListenerIpLoop",
-                "count": "[sub(variables('vmCount'),1)]"
+                "count": "[sub(parameters('vmCount'),1)]"
             },
             "name": "[concat(variables('vmNamePrefix'),copyIndex(1),'-agListenerIp')]",
             "dependsOn": [
@@ -276,7 +284,7 @@
             "apiVersion": "2015-01-01",
             "copy": {
                 "name": "virtualMachineLoop",
-                "count": "[variables('vmCount')]"
+                "count": "[parameters('vmCount')]"
             },
             "name": "[concat(variables('vmNamePrefix'),copyindex(),'-newVM')]",
             "dependsOn": [
@@ -341,7 +349,7 @@
             ],
             "copy": {
                 "name": "virtualMachineExtensionLoop",
-                "count": "[sub(variables('vmCount'),1)]"
+                "count": "[sub(parameters('vmCount'),1)]"
             },
             "properties": {
                 "publisher": "Microsoft.Powershell",
@@ -400,9 +408,9 @@
                         "sqlAlwaysOnAvailabilityGroupName": "[variables('agName')]",
                         "sqlAlwaysOnAvailabilityGroupListenerName": "[variables('agListenerName')]",
                         "sqlAlwaysOnEndpointName": "[variables('agEpName')]",
-                        "vmCount": "[variables('vmCount')]",
-                        "clusterIpAddresses": "[reference(concat(variables('vmNamePrefix'),sub(variables('vmCount'),1),'-clusterIp')).outputs.result.value]",
-                        "agListenerIpAddresses": "[reference(concat(variables('vmNamePrefix'),sub(variables('vmCount'),1),'-agListenerIp')).outputs.result.value]",
+                        "vmCount": "[parameters('vmCount')]",
+                        "clusterIpAddresses": "[reference(concat(variables('vmNamePrefix'),sub(parameters('vmCount'),1),'-clusterIp')).outputs.result.value]",
+                        "agListenerIpAddresses": "[reference(concat(variables('vmNamePrefix'),sub(parameters('vmCount'),1),'-agListenerIp')).outputs.result.value]",
                         "numberOfDisks": "[parameters('vmDiskCount')]",
                         "workloadType": "[parameters('workloadType')]",
                         "witnessStorageName": "[variables('witnessStorageName')]",

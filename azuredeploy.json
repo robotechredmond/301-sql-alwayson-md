@@ -17,6 +17,15 @@
       },
       "defaultValue": "Standard_DS2_v2"
     },
+    "vmCount": {
+      "type": "int",
+      "minValue": 2,
+      "maxValue": 9,
+      "metadata": {
+        "description": "Number of SQL Server VMs to be created in AlwaysOn Availability Group cluster (Min=2, Max=9)"
+      },
+      "defaultValue": 2
+    },
     "vmDiskSize": {
       "type": "int",
       "minValue": 128,
@@ -153,6 +162,9 @@
           },
           "vmSize": {
             "value": "[parameters('vmSize')]"
+          },
+          "vmCount": {
+            "value": "[parameters('vmCount')]"
           },
           "vmDiskSize": {
             "value": "[parameters('vmDiskSize')]"
