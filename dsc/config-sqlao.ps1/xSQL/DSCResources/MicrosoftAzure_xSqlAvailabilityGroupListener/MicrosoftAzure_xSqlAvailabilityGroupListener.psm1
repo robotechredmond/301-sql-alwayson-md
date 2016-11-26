@@ -156,12 +156,12 @@ function Test-TargetResource
         [PSCredential] $SqlAdministratorCredential
     )
 
-    Write-Verbose -Message "Checking if SQL AG '$($AvailabilityGroupName)' exists on instance '$($InstanceName)' ..."
+    Write-Verbose -Message "Checking if SQL AG Listener '$($Name)' exists on instance '$($InstanceName)' ..."
 
     $instance = Get-SqlInstanceName -Node  $env:COMPUTERNAME -InstanceName $InstanceName
     $s = Get-SqlServer -InstanceName $instance -Credential $SqlAdministratorCredential
 
-    $ag = Get-SqlAvailabilityGroup -Name $AvailabilityGroupName -Server $s
+    $ag = $s.AvailabilityGroups
     $agl = $ag.AvailabilityGroupListeners
     $bRet = $true
 
