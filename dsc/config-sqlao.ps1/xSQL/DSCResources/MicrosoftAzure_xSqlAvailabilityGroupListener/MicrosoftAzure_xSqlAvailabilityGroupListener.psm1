@@ -84,16 +84,43 @@ function Set-TargetResource
         [PSCredential] $SqlAdministratorCredential
     )
 
-    Write-Verbose -Message "Configuring  the Availability Group Listener port to '$($ListenerPortNumber)' ..."
+    try {
+        ($oldToken, $context, $newToken) = ImpersonateAs -cred $DomainCredential 
 
-    $subnetMask=(Get-ClusterNetwork)[0].AddressMask
+        Write-Verbose -Message "Configuring  the Availability Group Listener port to '$($ListenerPortNumber)' ..."
 
-    for ($count=0; $count -le $ListenerIPAddresses.Length-1; $count++) {
-        $ListenerIPAddresses[$count] += "/$subnetMask"
+        $instance = Get-SqlInstanceName -Node  $env:COMPUTERNAME -InstanceName $InstanceName
+        $s = Get-SqlServer -InstanceName $instance -Credential $SqlAdministratorCredential
+        $ag = Get-SqlAvailabilityGroup -Name $AvailabilityGroupName -Server $s
+        $subnetMask=(Get-ClusterNetwork)[0].AddressMask
+        $ag | New-SqlAvailabilityGroupListener -Name $Name -StaticIp "$($ListenerIPAddresses[0])/$subnetMask" -Port $ListenerPortNumber
+        $clusterResourceDependencyExpr = "([$($AvailabilityGroupName)_$($ListenerIPAddresses[0])])"
+
+        for ($count=1; $count -le $ListenerIPAddresses.Length - 1; $count++) {
+            $newIpv4AddrResName = "$($AvailabilityGroupName)_$($ListenerIPAddresses[$count])"
+            Add-ClusterResource -Name $newIpv4AddrResName -Group $AvailabilityGroupName -ResourceType "IP Address" 
+            $newIpv4AddrRes = Get-ClusterResource -Name $newIpv4AddrResName
+            $newIpv4AddrRes |
+            Set-ClusterParameter -Multiple @{
+                                    "Address" = $ListenerIPAddresses[$count]
+                                    "SubnetMask" = $subnetMask
+                                    "EnableDhcp" = 0
+                                }
+            $newIpv4AddrRes | Start-ClusterResource       
+            $clusterResourceDependencyExpr += " and ([$newIpv4AddrResName])"
+        }
+        
+        Set-ClusterResourceDependency -Resource "$($AvailabilityGroupName)_$Name" -Dependency $clusterResourceDependencyExpr
     }
-
-    New-SqlAvailabilityGroupListener -Name $Name -Path "SQLSERVER:\Sql\Computer\Instance\AvailabilityGroups\${AvailabilityGroupName}" -StaticIp $ListenerIPAddresses -Port $ListenerPortNumber
-    
+    finally
+    {
+        if ($context)
+        {
+            $context.Undo()
+            $context.Dispose()
+            CloseUserToken($newToken)
+        }
+    }      
 }
 
 function Test-TargetResource
@@ -135,16 +162,20 @@ function Test-TargetResource
     $s = Get-SqlServer -InstanceName $instance -Credential $SqlAdministratorCredential
 
     $ag = Get-SqlAvailabilityGroup -Name $AvailabilityGroupName -Server $s
-    if ($ag)
+    $agl = $ag.AvailabilityGroupListeners
+    $bRet = $true
+
+    if ($agl)
     {
-        Write-Verbose -Message "SQL AG '$($AvailabilityGroupName)' found."
+        Write-Verbose -Message "SQL AG Listener '$($Name)' found."
     }
     else
     {
-        throw "SQL GA '$($AvailabilityGroupName)' NOT found."
+        Write-Verbose "SQL AG Listener '$($Name)' NOT found."
+        $bRet = $false
     }
 
-    return $true
+    return $bRet
 }
 
 
