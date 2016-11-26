@@ -151,13 +151,15 @@ function Set-TargetResource
     }
 
     # Create the secondary replicas and join them to the availability group.
-    $nodeIndex = 2
+    $nodeIndex = 0
     foreach ($node in $nodes.Name)
     {
         if ($node -eq $primaryReplica)
         {
             continue
         }
+
+        $nodeIndex++
 
         Write-Verbose -Message "Adding replica '$($node)' to SQL AG '$($Name)' ..."
         $instance = Get-SqlInstanceName -Node $node -InstanceName $InstanceName
