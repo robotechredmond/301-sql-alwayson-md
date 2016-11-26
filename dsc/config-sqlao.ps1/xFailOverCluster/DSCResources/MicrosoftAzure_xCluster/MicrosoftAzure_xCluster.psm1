@@ -98,7 +98,7 @@ function Set-TargetResource
 
             Write-Verbose -Message "Adding new Cluster IP Address resources ..."
 
-            $subnetMask=(Get-ClusterNetwork).AddressMask
+            $subnetMask=(Get-ClusterNetwork)[0].AddressMask
 
             $clusterResourceDependencyExpr = "([$($firstClusterIpv4AddrRes.Name)])"
 

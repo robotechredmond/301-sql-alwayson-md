@@ -67,7 +67,7 @@ function Set-TargetResource
         [ValidateNotNullOrEmpty()]
         [String] $DomainNameFqdn,
 
-        [String] $ListenerIPAddresses,
+        [String[]] $ListenerIPAddresses,
 
         [UInt32] $ListenerPortNumber = 1433,
 
@@ -85,6 +85,13 @@ function Set-TargetResource
     )
 
     Write-Verbose -Message "Configuring  the Availability Group Listener port to '$($ListenerPortNumber)' ..."
+
+    $subnetMask=(Get-ClusterNetwork)[0].AddressMask
+
+    for ($count=0; $count -le $ListenerIPAddresses.Length-1; $count++) {
+        $ListenerIPAddresses[$count] += "/$subnetMask"
+    }
+
     New-SqlAvailabilityGroupListener -Name $Name -Path "SQLSERVER:\Sql\Computer\Instance\AvailabilityGroups\${AvailabilityGroupName}" -StaticIp $ListenerIPAddresses -Port $ListenerPortNumber
     
 }
@@ -105,7 +112,7 @@ function Test-TargetResource
         [ValidateNotNullOrEmpty()]
         [String] $DomainNameFqdn,
 
-        [String] $ListenerIPAddresses,
+        [String[]] $ListenerIPAddresses,
 
         [UInt32] $ListenerPortNumber = 1433,
 
