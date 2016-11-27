@@ -263,28 +263,32 @@ configuration ConfigSQLAO
             DependsOn = "[xSqlServer]ConfigureSqlServerWithAlwaysOn"
         }
 
-        for ($count=1; $count -lt $Nodes.Length; $count++) {
-
-            $Nodes=$Using:Nodes
+        foreach ($Node in $Nodes) {
+            
+            $PrimaryReplica=$Using:PrimaryReplica
             $SQLServiceCreds=$Using:SQLServiceCreds
 
-            xSqlServer "ConfigSecondaryWithAlwaysOn_$($Nodes[$count])"
-            {
-                InstanceName = $Nodes[$count]
-                SqlAdministratorCredential = $Using:Admincreds
-                Hadr = "Enabled"
-                DomainAdministratorCredential = $Using:DomainFQDNCreds
-                DependsOn = "[xCluster]FailoverCluster"
-            }
+            If ($Node -ne $PrimaryReplica) {
 
-            xSqlEndpoint "SqlSecondaryAlwaysOnEndpoint_$Nodes[$count])"
-            {
-                InstanceName = $Nodes[$count]
-                Name = $Using:SqlAlwaysOnEndpointName
-                PortNumber = $Using:DatabaseMirrorPort
-                AllowedUser = $SQLServiceCreds.UserName
-                SqlAdministratorCredential = $Using:SQLCreds
-            DependsOn="[xSqlServer]ConfigSecondaryWithAlwaysOn_$($Nodes[$count])"
+                xSqlServer "ConfigSecondaryWithAlwaysOn_$Node"
+                {
+                    InstanceName = $Node
+                    SqlAdministratorCredential = $Using:Admincreds
+                    Hadr = "Enabled"
+                    DomainAdministratorCredential = $Using:DomainFQDNCreds
+                    DependsOn = "[xCluster]FailoverCluster"
+                }
+
+                xSqlEndpoint "SqlSecondaryAlwaysOnEndpoint_$Node"
+                {
+                    InstanceName = $Node
+                    Name = $Using:SqlAlwaysOnEndpointName
+                    PortNumber = $Using:DatabaseMirrorPort
+                    AllowedUser = $SQLServiceCreds.UserName
+                    SqlAdministratorCredential = $Using:SQLCreds
+                    DependsOn="[xSqlServer]ConfigSecondaryWithAlwaysOn_$Node"
+                }
+
             }
         
         }
