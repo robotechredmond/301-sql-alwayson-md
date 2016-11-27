@@ -265,27 +265,24 @@ configuration ConfigSQLAO
 
         foreach ($Node in $Nodes) {
             
-            $PrimaryReplica=$Using:PrimaryReplica
-            $SQLServiceCreds=$Using:SQLServiceCreds
-
             If ($Node -ne $PrimaryReplica) {
 
                 xSqlServer "ConfigSecondaryWithAlwaysOn_$Node"
                 {
                     InstanceName = $Node
-                    SqlAdministratorCredential = $Using:Admincreds
+                    SqlAdministratorCredential = $Admincreds
                     Hadr = "Enabled"
-                    DomainAdministratorCredential = $Using:DomainFQDNCreds
+                    DomainAdministratorCredential = $DomainFQDNCreds
                     DependsOn = "[xCluster]FailoverCluster"
                 }
 
                 xSqlEndpoint "SqlSecondaryAlwaysOnEndpoint_$Node"
                 {
                     InstanceName = $Node
-                    Name = $Using:SqlAlwaysOnEndpointName
-                    PortNumber = $Using:DatabaseMirrorPort
+                    Name = $SqlAlwaysOnEndpointName
+                    PortNumber = $DatabaseMirrorPort
                     AllowedUser = $SQLServiceCreds.UserName
-                    SqlAdministratorCredential = $Using:SQLCreds
+                    SqlAdministratorCredential = $SQLCreds
                     DependsOn="[xSqlServer]ConfigSecondaryWithAlwaysOn_$Node"
                 }
 
