@@ -263,7 +263,7 @@ configuration ConfigSQLAO
             DependsOn = "[xSqlServer]ConfigureSqlServerWithAlwaysOn"
         }
 
-        for ($count=1; $count -le $Nodes.length-1; $count++) {
+        for ($count=1; $count -lt $Nodes.Length; $count++) {
 
             $Nodes=$Using:Nodes
             $SQLServiceCreds=$Using:SQLServiceCreds
