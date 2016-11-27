@@ -176,7 +176,7 @@ function Set-TargetResource
             $localReplica.Drop()
         }
 
-        # Automatic failover can be specified for up to two availability replicas.
+        # Automatic failover can be specified for up to two secondary availability replicas.
         if ($nodeIndex -le 2)
         {
             $failoverMode = [Microsoft.SqlServer.Management.Smo.AvailabilityReplicaFailoverMode]::Automatic
@@ -186,8 +186,8 @@ function Set-TargetResource
             $failoverMode = [Microsoft.SqlServer.Management.Smo.AvailabilityReplicaFailoverMode]::Manual
         }
 
-        # Synchronous commit can be specified for up to three availability replicas.
-        if ($nodeIndex -le 3)
+        # Synchronous commit can be specified for up to two secondary availability replicas.
+        if ($nodeIndex -le 2)
         {
             $availabilityMode = [Microsoft.SqlServer.Management.Smo.AvailabilityReplicaAvailabilityMode]::SynchronousCommit
         }
