@@ -298,7 +298,7 @@ configuration ConfigSQLAO
             PortNumber = $DatabaseMirrorPort
             DomainCredential =$DomainCreds
             SqlAdministratorCredential = $Admincreds
-	        DependsOn="[xSqlEndpoint]SqlSecondaryAlwaysOnEndpoint"
+	        DependsOn="[xSqlEndpoint]SqlSecondaryAlwaysOnEndpoint_$($Nodes[-1])"
         }
            
         # xSqlNewAGDatabase SQLAGDatabases
