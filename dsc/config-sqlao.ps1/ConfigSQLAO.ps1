@@ -265,23 +265,26 @@ configuration ConfigSQLAO
 
         for ($count=1; $count -le $Nodes.length-1; $count++) {
 
-            xSqlServer "ConfigSecondaryWithAlwaysOn_$($Using:Nodes[$count])"
+            $Nodes=$Using:Nodes
+            $SQLServiceCreds=$Using:SQLServiceCreds
+
+            xSqlServer "ConfigSecondaryWithAlwaysOn_$($Nodes[$count])"
             {
-                InstanceName = $Using:Nodes[$count]
+                InstanceName = $Nodes[$count]
                 SqlAdministratorCredential = $Using:Admincreds
                 Hadr = "Enabled"
                 DomainAdministratorCredential = $Using:DomainFQDNCreds
                 DependsOn = "[xCluster]FailoverCluster"
             }
 
-            xSqlEndpoint "SqlSecondaryAlwaysOnEndpoint_$Using:Nodes[$count])"
+            xSqlEndpoint "SqlSecondaryAlwaysOnEndpoint_$Nodes[$count])"
             {
-                InstanceName = $Using:Nodes[$count]
+                InstanceName = $Nodes[$count]
                 Name = $Using:SqlAlwaysOnEndpointName
                 PortNumber = $Using:DatabaseMirrorPort
-                AllowedUser = $Using:SQLServiceCreds.UserName
+                AllowedUser = $SQLServiceCreds.UserName
                 SqlAdministratorCredential = $Using:SQLCreds
-            DependsOn="[xSqlServer]ConfigSecondaryWithAlwaysOn_$($Using:Nodes[$count])"
+            DependsOn="[xSqlServer]ConfigSecondaryWithAlwaysOn_$($Nodes[$count])"
             }
         
         }
@@ -317,7 +320,7 @@ configuration ConfigSQLAO
             InstanceName = $env:COMPUTERNAME
             DomainCredential = $DomainCreds
             SqlAdministratorCredential = $Admincreds
-            DependsOn = "[xSqlNewAGDatabase]SQLAGDatabases"
+            DependsOn = "[xSqlAvailabilityGroup]SqlAG"
         }
 
         LocalConfigurationManager 
