@@ -263,25 +263,25 @@ configuration ConfigSQLAO
             DependsOn = "[xSqlServer]ConfigureSqlServerWithAlwaysOn"
         }
 
-        for ($count=1; $count -le $Nodes.length -1; $count++) {
+        for ($count=1; $count -le $Nodes.length-1; $count++) {
 
-            xSqlServer "ConfigSecondaryWithAlwaysOn_$($Nodes[$count])"
+            xSqlServer "ConfigSecondaryWithAlwaysOn_$($Using:Nodes[$count])"
             {
-                InstanceName = $Nodes[$count]
-                SqlAdministratorCredential = $Admincreds
+                InstanceName = $Using:Nodes[$count]
+                SqlAdministratorCredential = $Using:Admincreds
                 Hadr = "Enabled"
-                DomainAdministratorCredential = $DomainFQDNCreds
+                DomainAdministratorCredential = $Using:DomainFQDNCreds
                 DependsOn = "[xCluster]FailoverCluster"
             }
 
-            xSqlEndpoint "SqlSecondaryAlwaysOnEndpoint_$Nodes[$count])"
+            xSqlEndpoint "SqlSecondaryAlwaysOnEndpoint_$Using:Nodes[$count])"
             {
-                InstanceName = $Nodes[$count]
-                Name = $SqlAlwaysOnEndpointName
-                PortNumber = $DatabaseMirrorPort
-                AllowedUser = $SQLServiceCreds.UserName
-                SqlAdministratorCredential = $SQLCreds
-            DependsOn="[xSqlServer]ConfigSecondaryWithAlwaysOn_$($Nodes[$count])"
+                InstanceName = $Using:Nodes[$count]
+                Name = $Using:SqlAlwaysOnEndpointName
+                PortNumber = $Using:DatabaseMirrorPort
+                AllowedUser = $Using:SQLServiceCreds.UserName
+                SqlAdministratorCredential = $Using:SQLCreds
+            DependsOn="[xSqlServer]ConfigSecondaryWithAlwaysOn_$($Using:Nodes[$count])"
             }
         
         }
