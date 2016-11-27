@@ -88,7 +88,7 @@ configuration ConfigSQLAO
     }
 
     $PrimaryReplica = $Nodes[0]
-    $SecondaryReplica = $Nodes[1]
+    # $SecondaryReplica = $Nodes[1]
     
     WaitForSqlSetup
 
@@ -263,25 +263,29 @@ configuration ConfigSQLAO
             DependsOn = "[xSqlServer]ConfigureSqlServerWithAlwaysOn"
         }
 
-        xSqlServer ConfigureSqlServerSecondaryWithAlwaysOn
-        {
-            InstanceName = $SecondaryReplica
-            SqlAdministratorCredential = $Admincreds
-            Hadr = "Enabled"
-            DomainAdministratorCredential = $DomainFQDNCreds
-            DependsOn = "[xCluster]FailoverCluster"
+        for ($count=1; $count -le $Nodes.length -1; $count++) {
+
+            xSqlServer "ConfigSecondaryWithAlwaysOn_$($Nodes[$count])"
+            {
+                InstanceName = $Nodes[$count]
+                SqlAdministratorCredential = $Admincreds
+                Hadr = "Enabled"
+                DomainAdministratorCredential = $DomainFQDNCreds
+                DependsOn = "[xCluster]FailoverCluster"
+            }
+
+            xSqlEndpoint "SqlSecondaryAlwaysOnEndpoint_$Nodes[$count])"
+            {
+                InstanceName = $Nodes[$count]
+                Name = $SqlAlwaysOnEndpointName
+                PortNumber = $DatabaseMirrorPort
+                AllowedUser = $SQLServiceCreds.UserName
+                SqlAdministratorCredential = $SQLCreds
+            DependsOn="[xSqlServer]ConfigSecondaryWithAlwaysOn_$($Nodes[$count])"
+            }
+        
         }
 
-        xSqlEndpoint SqlSecondaryAlwaysOnEndpoint
-        {
-            InstanceName = $SecondaryReplica
-            Name = $SqlAlwaysOnEndpointName
-            PortNumber = $DatabaseMirrorPort
-            AllowedUser = $SQLServiceCreds.UserName
-            SqlAdministratorCredential = $SQLCreds
-	    DependsOn="[xSqlServer]ConfigureSqlServerSecondaryWithAlwaysOn"
-        }
-        
         xSqlAvailabilityGroup SqlAG
         {
             Name = $SqlAlwaysOnAvailabilityGroupName
@@ -293,15 +297,15 @@ configuration ConfigSQLAO
 	        DependsOn="[xSqlEndpoint]SqlSecondaryAlwaysOnEndpoint"
         }
            
-        xSqlNewAGDatabase SQLAGDatabases
-        {
-            SqlAlwaysOnAvailabilityGroupName = $SqlAlwaysOnAvailabilityGroupName
-            DatabaseNames = $DatabaseNames
-            PrimaryReplica = $PrimaryReplica
-            SecondaryReplica = $SecondaryReplica
-            SqlAdministratorCredential = $SQLCreds
-	        DependsOn = "[xSqlAvailabilityGroup]SqlAG"
-        }
+        # xSqlNewAGDatabase SQLAGDatabases
+        # {
+        #     SqlAlwaysOnAvailabilityGroupName = $SqlAlwaysOnAvailabilityGroupName
+        #     DatabaseNames = $DatabaseNames
+        #     PrimaryReplica = $PrimaryReplica
+        #     SecondaryReplica = $SecondaryReplica
+        #     SqlAdministratorCredential = $SQLCreds
+	    #     DependsOn = "[xSqlAvailabilityGroup]SqlAG"
+        # }
 
         xSqlAvailabilityGroupListener SqlAGListener
         {
