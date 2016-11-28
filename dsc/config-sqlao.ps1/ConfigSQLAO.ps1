@@ -51,8 +51,6 @@ configuration ConfigSQLAO
 
         [String]$DomainNetbiosName=(Get-NetBIOSName -DomainName $DomainName),
 
-        [String]$DatabaseNames = 'SampleDB1',
-
         [Parameter(Mandatory)]
         [UInt32]$NumberOfDisks,
 
@@ -88,7 +86,6 @@ configuration ConfigSQLAO
     }
 
     $PrimaryReplica = $Nodes[0]
-    # $SecondaryReplica = $Nodes[1]
     
     WaitForSqlSetup
 
@@ -301,16 +298,6 @@ configuration ConfigSQLAO
 	        DependsOn="[xSqlEndpoint]SqlSecondaryAlwaysOnEndpoint_$($Nodes[-1])"
         }
            
-        # xSqlNewAGDatabase SQLAGDatabases
-        # {
-        #     SqlAlwaysOnAvailabilityGroupName = $SqlAlwaysOnAvailabilityGroupName
-        #     DatabaseNames = $DatabaseNames
-        #     PrimaryReplica = $PrimaryReplica
-        #     SecondaryReplica = $SecondaryReplica
-        #     SqlAdministratorCredential = $SQLCreds
-	    #     DependsOn = "[xSqlAvailabilityGroup]SqlAG"
-        # }
-
         xSqlAvailabilityGroupListener SqlAGListener
         {
             Name = $SqlAlwaysOnAvailabilityGroupListenerName
