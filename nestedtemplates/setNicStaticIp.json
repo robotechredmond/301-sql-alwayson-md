@@ -32,7 +32,7 @@
                         "name": "[parameters('ipConfigName')]",
                         "properties": {
                             "privateIPAllocationMethod": "Static",
-                            "privateIPAddress": "[string(take(skip(parameters('ipAddresses'),copyIndex()),1))]"
+                            "privateIPAddress": "[parameters('ipAddresses')[copyIndex()]]"
                         }
                     }
                 ]
