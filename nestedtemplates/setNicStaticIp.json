@@ -7,6 +7,12 @@
         },
         "vmCount": {
             "type": "int"
+        },
+        "ipConfigName": {
+            "type": "string"
+        },
+        "ipAddresses": {
+            "type": "array"
         }
     },
     "variables": {},
@@ -23,21 +29,10 @@
             "properties": {
                 "ipConfigurations": [
                     {
-                        "name": "ipconfig1",
+                        "name": "[parameters('ipConfigName')]",
                         "properties": {
-                            "privateIPAllocationMethod": "Static"
-                        }
-                    },
-                    {
-                        "name": "ipconfig2",
-                        "properties": {
-                            "privateIPAllocationMethod": "Static"
-                        }
-                    },
-                    {
-                        "name": "ipconfig3",
-                        "properties": {
-                            "privateIPAllocationMethod": "Static"
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[take(skip(parameters('ipAddresses'),copyIndex()),1)]"
                         }
                     }
                 ]
