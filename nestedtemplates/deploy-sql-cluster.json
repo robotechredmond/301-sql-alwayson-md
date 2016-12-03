@@ -115,6 +115,7 @@
         "clusterName": "[concat(variables('vmNamePrefix'),'c')]",
         "vmLoopTemplateURL": "[concat(parameters('_artifactsLocation'),'/nestedtemplates/newVM.json',parameters('_artifactsLocationSasToken'))]",
         "ipLoopTemplateURL": "[concat(parameters('_artifactsLocation'),'/nestedtemplates/getIpAddress.json',parameters('_artifactsLocationSasToken'))]",
+        "nicStaticTemplateURL": "[concat(parameters('_artifactsLocation'),'/nestedtemplates/setNicStaticIp.json',parameters('_artifactsLocationSasToken'))]",
         "sqlPrepModulesURL": "[concat(parameters('_artifactsLocation'),'/dsc/prep-sqlao.ps1.zip',parameters('_artifactsLocationSasToken'))]",
         "sqlPrepFunction": "PrepSQLAO.ps1\\PrepSQLAO",
         "sqlConfigModulesURL": "[concat(parameters('_artifactsLocation'),'/dsc/config-sqlao.ps1.zip',parameters('_artifactsLocationSasToken'))]",
@@ -188,38 +189,25 @@
             }
         },
         {
-            "name": "[concat(variables('vmNamePrefix'), copyindex(), '-nic')]",
-            "type": "Microsoft.Network/networkInterfaces",
-            "location": "[resourceGroup().location]",
-            "apiVersion": "2015-06-15",
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2015-01-01",
+            "name": "[concat(variables('vmNamePrefix'),'nicStatic')]",
             "dependsOn": [
                 "nicLoop"
             ],
-            "copy": {
-                "name": "nicLoopStatic",
-                "count": "[parameters('vmCount')]"
-            },
             "properties": {
-                "ipConfigurations": [
-                    {
-                        "name": "ipconfig1",
-                        "properties": {
-                            "privateIPAllocationMethod": "Static"
-                        }
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[variables('nicStaticTemplateURL')]"
+                },
+                "parameters": {
+                    "vmNamePrefix": {
+                        "value": "[variables('vmNamePrefix')]"
                     },
-                    {
-                        "name": "ipconfig2",
-                        "properties": {
-                            "privateIPAllocationMethod": "Static"
-                        }
-                    },
-                    {
-                        "name": "ipconfig3",
-                        "properties": {
-                            "privateIPAllocationMethod": "Static"
-                        }
+                    "vmCount": {
+                        "value": "[parameters('vmCount')]"
                     }
-                ]
+                }
             }
         },
         {
@@ -227,7 +215,7 @@
             "apiVersion": "2015-01-01",
             "name": "[concat(variables('vmNamePrefix'),'0-clusterIp')]",
             "dependsOn": [
-                "nicLoopStatic"
+                "[concat(variables('vmNamePrefix'),'nicStatic')]"
             ],
             "properties": {
                 "mode": "Incremental",
