@@ -8,10 +8,13 @@
         "vmCount": {
             "type": "int"
         },
-        "ipConfigName": {
-            "type": "string"
+        "ipAddresses1": {
+            "type": "array"
         },
-        "ipAddresses": {
+        "ipAddresses2": {
+            "type": "array"
+        },
+        "ipAddresses3": {
             "type": "array"
         },
         "nicSubnetUri": {
@@ -32,10 +35,31 @@
             "properties": {
                 "ipConfigurations": [
                     {
-                        "name": "[parameters('ipConfigName')]",
+                        "name": "ipconfig1",
                         "properties": {
                             "privateIPAllocationMethod": "Static",
-                            "privateIPAddress": "[parameters('ipAddresses')[copyIndex()]]",
+                            "privateIPAddress": "[parameters('ipAddresses1')[copyIndex()]]",
+                            "subnet": {
+                                "id": "[parameters('nicSubnetUri')]"
+                            },
+                            "primary": true
+                        }
+                    },
+                    {
+                        "name": "ipconfig2",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[parameters('ipAddresses2')[copyIndex()]]",
+                            "subnet": {
+                                "id": "[parameters('nicSubnetUri')]"
+                            }
+                        }
+                    },
+                    {
+                        "name": "ipconfig3",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[parameters('ipAddresses3')[copyIndex()]]",
                             "subnet": {
                                 "id": "[parameters('nicSubnetUri')]"
                             }

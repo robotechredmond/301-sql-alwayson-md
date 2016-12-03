@@ -329,70 +329,10 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2015-01-01",
-            "name": "[concat(variables('vmNamePrefix'),'setStaticPrimaryIp')]",
+            "name": "[concat(variables('vmNamePrefix'),'setStaticIp')]",
             "dependsOn": [
-                "primaryIpLoop"
-            ],
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[variables('nicStaticTemplateURL')]"
-                },
-                "parameters": {
-                    "vmNamePrefix": {
-                        "value": "[variables('vmNamePrefix')]"
-                    },
-                    "vmCount": {
-                        "value": "[parameters('vmCount')]"
-                    },
-                    "ipConfigName": {
-                        "value": "ipconfig1"
-                    },
-                    "ipAddresses": {
-                        "value": "[reference(concat(variables('vmNamePrefix'),sub(parameters('vmCount'),1),'-primaryIp')).outputs.result.value]"
-                    },
-                    "nicSubnetUri": {
-                        "value": "[parameters('nicSubnetUri')]"
-                    }
-                }
-            }
-        },
-                {
-            "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2015-01-01",
-            "name": "[concat(variables('vmNamePrefix'),'setStaticClusterIp')]",
-            "dependsOn": [
-                "clusterIpLoop"
-            ],
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "[variables('nicStaticTemplateURL')]"
-                },
-                "parameters": {
-                    "vmNamePrefix": {
-                        "value": "[variables('vmNamePrefix')]"
-                    },
-                    "vmCount": {
-                        "value": "[parameters('vmCount')]"
-                    },
-                    "ipConfigName": {
-                        "value": "ipconfig2"
-                    },
-                    "ipAddresses": {
-                        "value": "[reference(concat(variables('vmNamePrefix'),sub(parameters('vmCount'),1),'-clusterIp')).outputs.result.value]"
-                    },
-                    "nicSubnetUri": {
-                        "value": "[parameters('nicSubnetUri')]"
-                    }
-                }
-            }
-        },
-                {
-            "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2015-01-01",
-            "name": "[concat(variables('vmNamePrefix'),'setStaticAgListenerIp')]",
-            "dependsOn": [
+                "primaryIpLoop",
+                "clusterIpLoop",
                 "agListenerIpLoop"
             ],
             "properties": {
@@ -407,10 +347,13 @@
                     "vmCount": {
                         "value": "[parameters('vmCount')]"
                     },
-                    "ipConfigName": {
-                        "value": "ipconfig3"
+                    "ipAddresses1": {
+                        "value": "[reference(concat(variables('vmNamePrefix'),sub(parameters('vmCount'),1),'-primaryIp')).outputs.result.value]"
                     },
-                    "ipAddresses": {
+                    "ipAddresses2": {
+                        "value": "[reference(concat(variables('vmNamePrefix'),sub(parameters('vmCount'),1),'-clusterIp')).outputs.result.value]"
+                    },
+                    "ipAddresses3": {
                         "value": "[reference(concat(variables('vmNamePrefix'),sub(parameters('vmCount'),1),'-agListenerIp')).outputs.result.value]"
                     },
                     "nicSubnetUri": {
