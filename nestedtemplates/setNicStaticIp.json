@@ -16,9 +16,6 @@
             "type": "Microsoft.Network/networkInterfaces",
             "location": "[resourceGroup().location]",
             "apiVersion": "2015-06-15",
-            "dependsOn": [
-                "nicLoop"
-            ],
             "copy": {
                 "name": "nicLoopStatic",
                 "count": "[parameters('vmCount')]"
