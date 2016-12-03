@@ -350,6 +350,9 @@
                     },
                     "ipAddresses": {
                         "value": "[reference(concat(variables('vmNamePrefix'),sub(parameters('vmCount'),1),'-primaryIp')).outputs.result.value]"
+                    },
+                    "nicSubnetUri": {
+                        "value": "[parameters('nicSubnetUri')]"
                     }
                 }
             }
@@ -378,6 +381,9 @@
                     },
                     "ipAddresses": {
                         "value": "[reference(concat(variables('vmNamePrefix'),sub(parameters('vmCount'),1),'-clusterIp')).outputs.result.value]"
+                    },
+                    "nicSubnetUri": {
+                        "value": "[parameters('nicSubnetUri')]"
                     }
                 }
             }
@@ -406,6 +412,9 @@
                     },
                     "ipAddresses": {
                         "value": "[reference(concat(variables('vmNamePrefix'),sub(parameters('vmCount'),1),'-agListenerIp')).outputs.result.value]"
+                    },
+                    "nicSubnetUri": {
+                        "value": "[parameters('nicSubnetUri')]"
                     }
                 }
             }

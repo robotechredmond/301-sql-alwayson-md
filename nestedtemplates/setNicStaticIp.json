@@ -13,6 +13,9 @@
         },
         "ipAddresses": {
             "type": "array"
+        },
+        "nicSubnetUri": {
+            "type": "string"
         }
     },
     "variables": {},
@@ -32,7 +35,10 @@
                         "name": "[parameters('ipConfigName')]",
                         "properties": {
                             "privateIPAllocationMethod": "Static",
-                            "privateIPAddress": "[parameters('ipAddresses')[copyIndex()]]"
+                            "privateIPAddress": "[parameters('ipAddresses')[copyIndex()]]",
+                            "subnet": {
+                                "id": "[parameters('nicSubnetUri')]"
+                            }
                         }
                     }
                 ]
