@@ -131,8 +131,8 @@
             "apiVersion": "2016-04-30-preview",
             "location": "[resourceGroup().location]",
             "properties": {
-                "platformFaultDomainCount": 2,
-                "platformUpdateDomainCount": 2,
+                "platformFaultDomainCount": 3,
+                "platformUpdateDomainCount": 3,
                 "managed": "true"
             }
         },
