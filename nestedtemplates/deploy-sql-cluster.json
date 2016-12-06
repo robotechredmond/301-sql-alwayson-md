@@ -122,7 +122,9 @@
         "sqlConfigFunction": "ConfigSQLAO.ps1\\ConfigSQLAO",
         "agName": "[concat(variables('vmNamePrefix'),'ag')]",
         "agListenerName": "[concat(variables('vmNamePrefix'),'agl')]",
-        "agEpName": "[concat(variables('vmNamePrefix'),'ha')]"
+        "agEpName": "[concat(variables('vmNamePrefix'),'ha')]",
+        "faultDomainCount": "[length(take(padLeft('',parameters('vmCount'),'x'),3))]",
+        "updateDomainCount": "[length(take(padLeft('',parameters('vmCount'),'x'),5))]"
     },
     "resources": [
         {
@@ -131,8 +133,8 @@
             "apiVersion": "2016-04-30-preview",
             "location": "[resourceGroup().location]",
             "properties": {
-                "platformFaultDomainCount": 3,
-                "platformUpdateDomainCount": 3,
+                "platformFaultDomainCount": "[variables('faultDomainCount')]",
+                "platformUpdateDomainCount": "[variables('updateDomainCount')]",
                 "managed": "true"
             }
         },
